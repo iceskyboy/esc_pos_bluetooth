@@ -1,7 +1,8 @@
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:esc_pos_bluetooth_forked/esc_pos_bluetooth.dart';
-import 'package:flutter/material.dart' hide Image;
+import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:image/image.dart' as printImg;
 
 void main() => runApp(MyApp());
 
@@ -35,7 +36,12 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_){
+      _asyncMethod();
+    });
+  }
 
+  _asyncMethod() async {
     printerManager.scanResults.listen((devices) async {
       // print('UI: Devices found ${devices.length}');
       setState(() {
@@ -56,52 +62,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _stopScanDevices() {
     printerManager.stopScan();
-  }
-
-  Future<Ticket> demoReceipt(PaperSize paper) async {
-    final profile = await CapabilityProfile.load();
-    final Ticket ticket = Ticket(paper, profile);
-
-    ticket.text('ToanNM');
-    ticket.feed(2);
-    ticket.cut();
-    return ticket;
-  }
-
-  Future<Ticket> testTicket(PaperSize paper) async {
-    final profile = await CapabilityProfile.load();
-
-    final Ticket ticket = Ticket(paper, profile);
-
-    ticket.text('Text size 200%',
-        styles: PosStyles(
-          height: PosTextSize.size2,
-          width: PosTextSize.size2,
-        ));
-
-    ticket.feed(2);
-
-    ticket.cut();
-    return ticket;
-  }
-
-  int tryTime = 0;
-  void _testPrint(PrinterBluetooth printer) async {
-    print('before ******* print');
-    await printerManager.selectPrinter(printer);
-
-    // TODO Don't forget to choose printer's paper
-    const PaperSize paper = PaperSize.mm80;
-
-    // TEST PRINT
-    // final PosPrintResult res =
-    // await printerManager.printTicket(await testTicket(paper));
-
-    // DEMO RECEIPT
-    final PosPrintResult res =
-        await printerManager.printTicket(await demoReceipt(paper));
-
-    showToast(res.msg);
   }
 
   @override
@@ -148,7 +108,7 @@ class _MyHomePageState extends State<MyHomePage> {
             );
           }),
       floatingActionButton: StreamBuilder<bool>(
-        stream: printerManager.isScanningStream,
+        //stream: printerManager.isScanningStream,
         initialData: false,
         builder: (c, snapshot) {
           // if (snapshot.data) {
@@ -166,5 +126,24 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ),
     );
+  }
+
+  void _testPrint(PrinterBluetooth printer) async {
+    PaperSize paper = PaperSize.mm58;
+    final profile = await CapabilityProfile.load();
+    printerManager.setGenerator(paper, profile);
+    await printerManager.connectPrinter(printer);
+    printerManager.text(
+        'Regular: aA bB cC dD eE fF gG hH iI jJ kK lL mM nN oO pP qQ rR sS tT uU vV wW xX yY zZ');
+    printerManager.text('Text size 200%',
+        styles: PosStyles(
+          height: PosTextSize.size2,
+          width: PosTextSize.size2,
+        ));
+    printerManager.cut();
+    await Future.delayed(const Duration(milliseconds: 100), () async {
+      //await printerManager.disconnectPrinter();
+    });
+
   }
 }
