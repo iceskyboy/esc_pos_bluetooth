@@ -9,6 +9,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+//import 'package:bluetooth_print/bluetooth_print_model.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:flutter_bluetooth_basic/flutter_bluetooth_basic.dart';
 import '../esc_pos_bluetooth.dart';

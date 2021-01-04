@@ -9,11 +9,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  rxdart: ^0.23.1
+  rxdart: ^0.25.0
   esc_pos_utils: ^1.0.0
   # esc_pos_utils:
     # path: ../esc_pos_utils
-  flutter_bluetooth_basic: ^0.1.5
+  flutter_bluetooth_basic:
+    git: https://github.com/iceskyboy/flutter_bluetooth_basic.git
   image: ^2.1.19
 
 dev_dependencies:
