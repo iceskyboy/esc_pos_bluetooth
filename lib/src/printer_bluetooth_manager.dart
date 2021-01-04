@@ -38,6 +38,8 @@ class PrinterBluetoothManager {
 
   BluetoothManager bluetoothManager = BluetoothManager.instance;
   Future<bool> get isConnected => bluetoothManager.isConnected;
+  Stream<int> get state => bluetoothManager.state;
+
   // bool _isConnected = false;
   StreamSubscription _scanResultsSubscription;
   StreamSubscription _isScanningSubscription;
