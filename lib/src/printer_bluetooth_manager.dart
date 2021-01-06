@@ -33,6 +33,7 @@ class PrinterBluetoothManager {
   void setGenerator(PaperSize paperSize, CapabilityProfile profile, {int spaceBetweenRows = 5}) {
     _generator =
         Generator(paperSize, profile, spaceBetweenRows: spaceBetweenRows);
+    mainData = new List<List<int>>();
   }
 
   Generator _generator;
@@ -45,6 +46,7 @@ class PrinterBluetoothManager {
   StreamSubscription _scanResultsSubscription;
   StreamSubscription _isScanningSubscription;
   PrinterBluetooth _selectedPrinter;
+  List<List<int>> mainData;
 
   final BehaviorSubject<bool> _isScanning = BehaviorSubject.seeded(false);
   Stream<bool> get isScanningStream => _isScanning.stream;
@@ -155,6 +157,51 @@ class PrinterBluetoothManager {
     return completer.future;
   }
 
+  Future<PosPrintResult> print(
+      {
+        int chunkSizeBytes = 20,
+        int queueSleepTimeMs = 20,
+      }) async {
+    final Completer<PosPrintResult> completer = Completer();
+
+    if (_selectedPrinter == null) {
+      return Future<PosPrintResult>.value(PosPrintResult.printerNotSelected);
+    } else if (_isScanning.value) {
+      return Future<PosPrintResult>.value(PosPrintResult.scanInProgress);
+    }
+
+    /*final len = bytes.length;
+    List<List<int>> chunks = [];
+    for (var i = 0; i < len; i += chunkSizeBytes) {
+      var end = (i + chunkSizeBytes < len) ? i + chunkSizeBytes : len;
+      chunks.add(bytes.sublist(i, end));
+    }
+
+    for (var i = 0; i < chunks.length; i += 1) {
+      await bluetoothManager.writeData(chunks[i]);
+      sleep(Duration(milliseconds: queueSleepTimeMs));
+    }*/
+    if(mainData == null){
+      return Future<PosPrintResult>.value(PosPrintResult.timeout);
+    }else{
+      mainData.forEach((bytes) async {
+        await bluetoothManager.writeData(bytes);
+        sleep(Duration(milliseconds: queueSleepTimeMs));
+      });
+      completer.complete(PosPrintResult.success);
+    }
+
+
+    // Printing timeout
+    Future<dynamic>.delayed(Duration(seconds: 5)).then((v) async {
+      if (!completer.isCompleted) {
+        completer.complete(PosPrintResult.timeout);
+      }
+    });
+
+    return completer.future;
+  }
+
   void text(
       String text, {
         PosStyles styles = const PosStyles(),
@@ -162,62 +209,59 @@ class PrinterBluetoothManager {
         bool containsChinese = false,
         int maxCharsPerLine,
       }) {
-    writeBytes(_generator.text(text,
+    mainData.add(_generator.text(text,
         styles: styles,
         linesAfter: linesAfter,
         containsChinese: containsChinese,
-        maxCharsPerLine: maxCharsPerLine),
-      chunkSizeBytes: 20,
-      queueSleepTimeMs: 20
-    );
+        maxCharsPerLine: maxCharsPerLine));
   }
 
   void setGlobalCodeTable(String codeTable) {
-    writeBytes(_generator.setGlobalCodeTable(codeTable));
+    mainData.add(_generator.setGlobalCodeTable(codeTable));
   }
 
   void setGlobalFont(PosFontType font, {int maxCharsPerLine}) {
-    writeBytes(_generator.setGlobalFont(font, maxCharsPerLine: maxCharsPerLine));
+    mainData.add(_generator.setGlobalFont(font, maxCharsPerLine: maxCharsPerLine));
   }
 
   void setStyles(PosStyles styles, {bool isKanji = false}) {
-    writeBytes(_generator.setStyles(styles, isKanji: isKanji));
+    mainData.add(_generator.setStyles(styles, isKanji: isKanji));
   }
 
   void rawBytes(List<int> cmd, {bool isKanji = false}) {
-    writeBytes(_generator.rawBytes(cmd, isKanji: isKanji));
+    mainData.add(_generator.rawBytes(cmd, isKanji: isKanji));
   }
 
   void emptyLines(int n) {
-    writeBytes(_generator.emptyLines(n));
+    mainData.add(_generator.emptyLines(n));
   }
 
   void feed(int n) {
-    writeBytes(_generator.feed(n));
+    mainData.add(_generator.feed(n));
   }
 
   void cut({PosCutMode mode = PosCutMode.full}) {
-    writeBytes(_generator.cut(mode: mode));
+    mainData.add(_generator.cut(mode: mode));
   }
 
   void printCodeTable({String codeTable}) {
-    writeBytes(_generator.printCodeTable(codeTable: codeTable));
+    mainData.add(_generator.printCodeTable(codeTable: codeTable));
   }
 
   void beep({int n = 3, PosBeepDuration duration = PosBeepDuration.beep450ms}) {
-    writeBytes(_generator.beep(n: n, duration: duration));
+    mainData.add(_generator.beep(n: n, duration: duration));
   }
 
   void reverseFeed(int n) {
-    writeBytes(_generator.reverseFeed(n));
+    mainData.add(_generator.reverseFeed(n));
   }
 
   void row(List<PosColumn> cols) {
-    writeBytes(_generator.row(cols));
+    mainData.add(_generator.row(cols));
   }
 
   void image(Image imgSrc, {PosAlign align = PosAlign.center}) {
-    writeBytes(_generator.image(imgSrc, align: align));
+    mainData.add(_generator.image(imgSrc, align: align));
   }
 
   void imageRaster(
@@ -227,7 +271,7 @@ class PrinterBluetoothManager {
         bool highDensityVertical = true,
         PosImageFn imageFn = PosImageFn.bitImageRaster,
       }) {
-    writeBytes(_generator.imageRaster(
+    mainData.add(_generator.imageRaster(
       image,
       align: align,
       highDensityHorizontal: highDensityHorizontal,
@@ -244,7 +288,7 @@ class PrinterBluetoothManager {
         BarcodeText textPos = BarcodeText.below,
         PosAlign align = PosAlign.center,
       }) {
-    writeBytes(_generator.barcode(
+    mainData.add(_generator.barcode(
       barcode,
       width: width,
       height: height,
@@ -260,7 +304,7 @@ class PrinterBluetoothManager {
         QRSize size = QRSize.Size4,
         QRCorrection cor = QRCorrection.L,
       }) {
-    writeBytes(_generator.qrcode(text, align: align, size: size, cor: cor));
+    mainData.add(_generator.qrcode(text, align: align, size: size, cor: cor));
   }
 
   void drawer({PosDrawer pin = PosDrawer.pin2}) {
@@ -268,7 +312,7 @@ class PrinterBluetoothManager {
   }
 
   void hr({String ch = '-', int len, int linesAfter = 0}) {
-    writeBytes(_generator.hr(ch: ch, linesAfter: linesAfter));
+    mainData.add(_generator.hr(ch: ch, linesAfter: linesAfter));
   }
 
   void textEncoded(
@@ -277,7 +321,7 @@ class PrinterBluetoothManager {
         int linesAfter = 0,
         int maxCharsPerLine,
       }) {
-    writeBytes(_generator.textEncoded(
+    mainData.add(_generator.textEncoded(
       textBytes,
       styles: styles,
       linesAfter: linesAfter,

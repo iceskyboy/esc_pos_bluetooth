@@ -132,7 +132,6 @@ class _MyHomePageState extends State<MyHomePage> {
     PaperSize paper = PaperSize.mm58;
     final profile = await CapabilityProfile.load();
     printerManager.setGenerator(paper, profile);
-    await printerManager.connectPrinter(printer);
     printerManager.text(
         'Regular: aA bB cC dD eE fF gG hH iI jJ kK lL mM nN oO pP qQ rR sS tT uU vV wW xX yY zZ');
     printerManager.text('Text size 200%',
@@ -141,6 +140,8 @@ class _MyHomePageState extends State<MyHomePage> {
           width: PosTextSize.size2,
         ));
     printerManager.cut();
+    await printerManager.connectPrinter(printer);
+    await printerManager.print();
     await Future.delayed(const Duration(milliseconds: 100), () async {
       //await printerManager.disconnectPrinter();
     });
